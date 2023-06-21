@@ -1,0 +1,32 @@
+<resources>
+    <string name="app_name">HomeworkTracker</string>
+    <string name="remove_item_description">remove</string>
+    <string name="scroll_view_thing">Scroll View</string>
+    <string name="assignment_name">Assignment Name</string>
+    <string name="add_item">Add Item</string>
+    <string name="date_format">mm/dd/yyyy</string>
+    <string name="course_id_spinner">CourseIDSpinner</string>
+    <string name="add_courses">Add Courses</string>
+    <string name="add_course">Add Course</string>
+    <string name="remove_course">Remove Course</string>
+    <string name="course_1">Course 1</string>
+    <string name="cop_1000">COP 1000</string>
+    <string name="purple">Purple</string>
+    <string name="new_course">New Course</string>
+    <string name="courseid">CourseID</string>
+    <string name="save_course">Save Course</string>
+    <string name="cancel">Cancel</string>
+    <string name="blue">blue</string>
+    <string name="cop_3300">COP 3300</string>
+    <string name="chapter_4_ui_design">Chapter 4 - UI Design</string>
+    <string name="_31_03_2023">31/03/2023</string>
+    <string name="due_date">Due Date:</string>
+    <string-array name="colors">
+        <item>Purple</item>
+        <item>Blue</item>
+        <item>Green</item>
+        <item>Yellow</item>
+        <item>Red</item>
+        <item>Teal</item>
+    </string-array>
+</resources>
