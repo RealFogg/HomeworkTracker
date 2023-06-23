@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -48,119 +49,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         addCoursesButton.setOnClickListener(this);
 
         refreshCourseSpinner();
-        refreshAssignmentList();
-    }
-
-    private void addAssignmentCard() {
-        String assignmentNameString = assignmentNameEditText.getText().toString();
-        String courseCodeString = courseSpinner.getSelectedItem().toString();
-        String dueDateString = dueDateEditText.getText().toString();
-
-        // Verify all fields are filled
-        if (assignmentNameString.equals("") || courseCodeString.equals("") || dueDateString.equals("")) {
-            Toast.makeText(this, "Please fill in the required fields", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Verify date
-        String[] dateSplit = dueDateString.split("/");
-        if (!verifyDate(dateSplit)) {
-            return;
-        }
-
-        // Inflate the card view
-        View cardView = getLayoutInflater().inflate(R.layout.assignment_card, null);
-
-        // Widget references for the created card view
-        ImageView colorIndicatorImageView = (ImageView) cardView.findViewById(R.id.colorIndicatorImageView);
-        TextView dueDateTextView = (TextView) cardView.findViewById(R.id.dueDateTextView);
-        TextView courseIdTextView = (TextView) cardView.findViewById(R.id.courseIdTextView);
-        TextView assignmentNameTextView = (TextView) cardView.findViewById(R.id.assignmentNameTextView);
-        Button removeButton = (Button) cardView.findViewById(R.id.removeButton);
-
-        // Create a database object and Create a course object using string from the courseSpinner
-        AssignmentsDB db = new AssignmentsDB(this);
-        Course course = db.getCourse(courseCodeString);
-
-        // Set the color for the image view using the course color from the course object
-        String colorString = "";
-        switch(course.getColor()) {
-            case "Purple":
-                colorIndicatorImageView.setImageResource(R.drawable.ic_purple_square);
-                colorIndicatorImageView.setContentDescription("purple");
-                colorString = "purple";
-                break;
-            case "Blue":
-                colorIndicatorImageView.setImageResource(R.drawable.ic_blue_square);
-                colorIndicatorImageView.setContentDescription("blue");
-                colorString = "blue";
-                break;
-            case "Green":
-                colorIndicatorImageView.setImageResource(R.drawable.ic_green_square);
-                colorIndicatorImageView.setContentDescription("green");
-                colorString = "green";
-                break;
-            case "Yellow":
-                colorIndicatorImageView.setImageResource(R.drawable.ic_yellow_orange_square);
-                colorIndicatorImageView.setContentDescription("yellow");
-                colorString = "yellow";
-                break;
-            case "Red":
-                colorIndicatorImageView.setImageResource(R.drawable.ic_red_square);
-                colorIndicatorImageView.setContentDescription("red");
-                colorString = "red";
-                break;
-            default:
-                colorIndicatorImageView.setImageResource(R.drawable.ic_teal_square);
-                colorIndicatorImageView.setContentDescription("teal");
-                colorString = "teal";
-                break;
-        }
-
-        dueDateTextView.setText(dueDateString);
-        dueDateEditText.setText("");
-
-        courseIdTextView.setText(courseCodeString);
-
-        assignmentNameTextView.setText(assignmentNameString);
-        assignmentNameEditText.setText("");
-
-        // Increments an iterator and checks if it has been used as an assignment id yet
-        // This prevents me from using an existing id
-        int i = 0;
-        boolean done = false;
-        while (!done) {
-            i += 1;
-            if (!db.assignmentIdIsDatabased(i)) {
-                done = true;
-            }
-        }
-
-        // Convert the user entered date into a format that can be used in the database
-        String dbDueDateString = dateSplit[2] + "-" + dateSplit[0] + "-" + dateSplit[1];
-
-        // Create the assignment using the data gathered so far
-        Assignment assignment = new Assignment(i, courseCodeString, assignmentNameString, dbDueDateString, colorString);
-
-        // Add assignment to database
-        long rowID = db.insertAssignment(assignment);
-
-        //This works because the listener is connected to the removeButton which is connected to
-        //the cardView I am creating. This means that when I add the cardView to the activity_main's
-        //LinearLayout the listener persists through the cardView.
-        removeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Delete the assignment from the database and remove it from the layout view
-                db.deleteAssignment(rowID);
-                layout.removeView(cardView);
-            }
-        });
-
-        // Add the Card to the linear layout
-        layout.addView(cardView);
-
-        // Refresh the assignment list
         refreshAssignmentList();
     }
 
@@ -242,21 +130,64 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         // Add all the assignments from the database as cards
         for(Assignment assignment : assignments) {
-            // Inflate the card view
-            View cardView = getLayoutInflater().inflate(R.layout.assignment_card, null);
+            assignmentHelper(db, assignment);
+        }
+    }
 
-            // Widget references for the card view
-            ImageView colorIndicatorImageView = (ImageView) cardView.findViewById(R.id.colorIndicatorImageView);
-            TextView dueDateTextView = (TextView) cardView.findViewById(R.id.dueDateTextView);
-            TextView courseIdTextView = (TextView) cardView.findViewById(R.id.courseIdTextView);
-            TextView assignmentNameTextView = (TextView) cardView.findViewById(R.id.assignmentNameTextView);
-            Button removeButton = (Button) cardView.findViewById(R.id.removeButton);
+    private void assignmentHelper(AssignmentsDB db, Assignment assignment) {
+        //
+        boolean refreshMode = false;
+        if (assignment != null) {
+            refreshMode = true;
+        }
 
-            // Get assignment information from the database
-            String courseIdString = assignment.getCourseID();
-            String assignmentNameString = assignment.getName();
-            String dueDateString = assignment.getDueDate();
-            String colorString = assignment.getColor();
+        String courseIdString = "";
+        String assignmentNameString = "";
+        String dueDateString = "";
+        String colorString = "";
+        String dbDueDateString = "";
+        long rowID = -1;
+
+        // This Code checks if there are any issues with the assignment name, date, or course Id prior to creating the assignment card
+        if (!refreshMode) {
+            assignmentNameString = assignmentNameEditText.getText().toString();
+            //courseCodeString = courseSpinner.getSelectedItem().toString(); // Change to courseIdString later
+            courseIdString = courseSpinner.getSelectedItem().toString(); // temp *********************************
+            dueDateString = dueDateEditText.getText().toString();
+
+            // Verify all fields are filled
+            if (assignmentNameString.equals("") || courseIdString.equals("") || dueDateString.equals("")) {
+                Toast.makeText(this, "Please fill in the required fields", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Verify date
+            String[] dateSplit = dueDateString.split("/");
+            if (!verifyDate(dateSplit)) {
+                return;
+            }
+
+            // Convert the user entered date into a format that can be used in the database
+           dbDueDateString = dateSplit[2] + "-" + dateSplit[0] + "-" + dateSplit[1];
+        }
+
+        // Create a new assignment card view
+        View cardView = getLayoutInflater().inflate(R.layout.assignment_card, null);
+
+        // Widget references for the card view
+        ImageView colorIndicatorImageView = (ImageView) cardView.findViewById(R.id.colorIndicatorImageView);
+        TextView dueDateTextView = (TextView) cardView.findViewById(R.id.dueDateTextView);
+        TextView courseIdTextView = (TextView) cardView.findViewById(R.id.courseIdTextView);
+        TextView assignmentNameTextView = (TextView) cardView.findViewById(R.id.assignmentNameTextView);
+        Button removeButton = (Button) cardView.findViewById(R.id.removeButton);
+
+        if (refreshMode) {
+            /*********      Code specific to refreshing the card list        *********/
+
+            courseIdString = assignment.getCourseID();
+            assignmentNameString = assignment.getName();
+            dueDateString = assignment.getDueDate();
+            colorString = assignment.getColor();
 
             // Check if Assignment table's color matches Course table's color
             ArrayList<Course> courses = db.getCourses();
@@ -269,64 +200,113 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
 
-            // Set the information in the inflated card
-            courseIdTextView.setText(courseIdString);
-
-            assignmentNameTextView.setText(assignmentNameString);
-            assignmentNameEditText.setText("");
-
             // Convert the due date back to my date format
             String[] dateSplit = dueDateString.split("-");
             String cardDueDateString = dateSplit[1] + "/" + dateSplit[2] + "/" + dateSplit[0];
-
+            // Set the due date text view on the card I am creating
             dueDateTextView.setText(cardDueDateString);
-            dueDateEditText.setText("");
+        }
+        else {
+            /*********      Code specific to Adding a new card to the list        *********/
 
-            switch(colorString) {
-                case "purple":
-                    colorIndicatorImageView.setImageResource(R.drawable.ic_purple_square);
-                    colorIndicatorImageView.setContentDescription("purple");
-                    break;
-                case "blue":
-                    colorIndicatorImageView.setImageResource(R.drawable.ic_blue_square);
-                    colorIndicatorImageView.setContentDescription("blue");
-                    break;
-                case "green":
-                    colorIndicatorImageView.setImageResource(R.drawable.ic_green_square);
-                    colorIndicatorImageView.setContentDescription("green");
-                    break;
-                case "yellow":
-                    colorIndicatorImageView.setImageResource(R.drawable.ic_yellow_orange_square);
-                    colorIndicatorImageView.setContentDescription("yellow");
-                    break;
-                case "red":
-                    colorIndicatorImageView.setImageResource(R.drawable.ic_red_square);
-                    colorIndicatorImageView.setContentDescription("red");
-                    break;
-                default:
-                    colorIndicatorImageView.setImageResource(R.drawable.ic_teal_square);
-                    colorIndicatorImageView.setContentDescription("teal");
-                    break;
+            // Set the due date text view on the card I am creating
+            dueDateTextView.setText(dueDateString);
+
+            // Determine the color code for the assignment
+            Course course = db.getCourse(courseIdString);
+            colorString = course.getColor();
+
+            // Increments an iterator and checks if it has been used as an assignment id yet
+            // This prevents me from using an existing id
+            int i = 0;
+            boolean done = false;
+            while (!done) {
+                i += 1;
+                if (!db.assignmentIdIsDatabased(i)) {
+                    done = true;
+                }
             }
 
+            // Create the assignment using the data gathered so far
+            assignment = new Assignment(i, courseIdString, assignmentNameString, dbDueDateString, colorString);
+
+            // Add assignment to database
+            rowID = db.insertAssignment(assignment);
+        }
+
+        // Set the rest of the necessary information for the card I am creating
+        courseIdTextView.setText(courseIdString);
+        assignmentNameTextView.setText(assignmentNameString);
+
+        switch(colorString) {
+            case "purple":
+                colorIndicatorImageView.setImageResource(R.drawable.ic_purple_square);
+                colorIndicatorImageView.setContentDescription("purple");
+                break;
+            case "blue":
+                colorIndicatorImageView.setImageResource(R.drawable.ic_blue_square);
+                colorIndicatorImageView.setContentDescription("blue");
+                break;
+            case "green":
+                colorIndicatorImageView.setImageResource(R.drawable.ic_green_square);
+                colorIndicatorImageView.setContentDescription("green");
+                break;
+            case "yellow":
+                colorIndicatorImageView.setImageResource(R.drawable.ic_yellow_orange_square);
+                colorIndicatorImageView.setContentDescription("yellow");
+                break;
+            case "red":
+                colorIndicatorImageView.setImageResource(R.drawable.ic_red_square);
+                colorIndicatorImageView.setContentDescription("red");
+                break;
+            default:
+                colorIndicatorImageView.setImageResource(R.drawable.ic_teal_square);
+                colorIndicatorImageView.setContentDescription("teal");
+                break;
+        }
+
+        if (refreshMode) {
+            /*********      Code specific to refreshing the card list Again        *********/
+
+            Assignment finalAssignment = assignment;
             removeButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     // Remove assignment from database and activity
-                    db.deleteAssignment(assignment);
+                    db.deleteAssignment(finalAssignment);
                     layout.removeView(cardView);
                 }
             });
+        }
+        else {
+            /*********      Code specific to refreshing the card list Again        *********/
 
-            // Add the Card to the linear layout
-            layout.addView(cardView);
+            //This works because the listener is connected to the removeButton which is connected to
+            //the cardView I am creating. This means that when I add the cardView to the activity_main's
+            //LinearLayout the listener persists through the cardView.
+            long finalRowID = rowID;
+            removeButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // Delete the assignment from the database and remove it from the layout view
+                    db.deleteAssignment(finalRowID);
+                    layout.removeView(cardView);
+                }
+            });
+        }
+
+        // Add the Card to the linear layout
+        layout.addView(cardView);
+
+        // If in add mode then refresh the list after it has been added
+        if (!refreshMode) {
+            refreshAssignmentList();
         }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-
         refreshCourseSpinner();
         refreshAssignmentList();
     }
@@ -336,7 +316,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.addItemButton:
-                addAssignmentCard();
+                //addAssignmentCard();
+                AssignmentsDB db = new AssignmentsDB(this);
+                assignmentHelper(db, null);
                 break;
             case R.id.addCoursesButton:
                 Intent intent = new Intent(this, SettingsActivity.class);

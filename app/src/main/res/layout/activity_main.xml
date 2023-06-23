@@ -55,6 +55,7 @@
         app:layout_constraintTop_toBottomOf="@+id/courseSpinner" />
 
     <ScrollView
+        android:id="@+id/scrollView3"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="@color/card_back"

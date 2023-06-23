@@ -22,11 +22,11 @@
     <string name="_31_03_2023">31/03/2023</string>
     <string name="due_date">Due Date:</string>
     <string-array name="colors">
-        <item>Purple</item>
-        <item>Blue</item>
-        <item>Green</item>
-        <item>Yellow</item>
-        <item>Red</item>
-        <item>Teal</item>
+        <item>purple</item>
+        <item>blue</item>
+        <item>green</item>
+        <item>yellow</item>
+        <item>red</item>
+        <item>teal</item>
     </string-array>
 </resources>
